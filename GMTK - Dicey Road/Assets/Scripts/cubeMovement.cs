@@ -11,44 +11,75 @@ public class cubeMovement : MonoBehaviour
     
     int xDir, zDir;
 
-    public CharacterController cubeController;
+    
     public Player_slide playerSlideScript;
-    public Dice_roll diceRollScript;
+   // public Dice_roll diceRollScript;
+    public CameraMovenemt cameraScript;
     public Transform ray_origin;
     public LayerMask groundLayer;
+    public LayerMask despawnLayer;
 
 
     public float gravity;
     
+    public bool followCamera;
     [SerializeField]
     bool isGrounded;
-    [SerializeField]
-    bool isLeft;
-    [SerializeField]
-    bool isRight;
-    [SerializeField]
-    bool isFront;
-    [SerializeField]
-    bool isBack;
+    
+    public bool isLeft;
+   
+    public bool isRight;
+    public bool isFront;
+    
+    public  bool isBack;
 
-    [SerializeField]
+    public bool isDespawn;
     bool isTopLeft;
-    [SerializeField]
     bool isTopRight;
-    [SerializeField]
     bool isTopFront;
-    [SerializeField]
     bool isTopBack;
 
 
-    bool isBreak = false;
 
     public float length = 1.5f;
-    
+
+    bool keyInput;
+   
+    public int diceRoll;
+    //  private bool[] rays = new bool[6];
+    private RaycastHit[] rays = new RaycastHit[6];
+    private KeyCode[] InputMappingForward = {KeyCode.W,KeyCode.A,KeyCode.S,KeyCode.D};
+    private KeyCode[] InputMappingBackward = { KeyCode.S, KeyCode.D, KeyCode.W, KeyCode.A };
+    private KeyCode[] InputMappingLeft = { KeyCode.A, KeyCode.S, KeyCode.D, KeyCode.W };
+    private KeyCode[] InputMappingRight = { KeyCode.D, KeyCode.W, KeyCode.A, KeyCode.S };
+
+    private void Awake()
+    {
+        cameraScript = GameObject.FindGameObjectWithTag("MainCamera").GetComponent<CameraMovenemt>();
+    }
+    private void Start()
+    {
+       
+    }
     void Update()
     {
+        
+        Physics.Raycast(ray_origin.position, ray_origin.transform.forward,out rays[0] ,5);
+        Physics.Raycast(ray_origin.position, ray_origin.transform.right, out rays[1], 5);
+        Physics.Raycast(ray_origin.position, ray_origin.transform.up, out rays[2], 5);
+        Physics.Raycast(ray_origin.position, -ray_origin.transform.up, out rays[3], 5);
+        Physics.Raycast(ray_origin.position, -ray_origin.transform.right, out rays[4], 5);
+        Physics.Raycast(ray_origin.position, -ray_origin.transform.forward, out rays[5], 5);
+        isDespawn = Physics.Raycast(ray_origin.position, Vector3.down, 1.5f, despawnLayer);
+        for(int i=0;i<6;i++)
+        {
+            if((rays[i].normal == Vector3.up))
+            {
+                diceRoll = i + 1;
+            }
+        }
+        followCamera = isGrounded;
 
-       
         isGrounded = Physics.Raycast(ray_origin.position,Vector3.down,length, groundLayer);
         
         isLeft = Physics.Raycast(ray_origin.position, Vector3.left, 1.5f, groundLayer);
@@ -88,7 +119,7 @@ public class cubeMovement : MonoBehaviour
             Right();
             Left();
         }
-        
+
         
         
         if (!isGrounded && !isMoving)
@@ -102,9 +133,10 @@ public class cubeMovement : MonoBehaviour
 
     void Front()
     {
-        if (Input.GetKeyDown(KeyCode.W))
+        if (Input.GetKeyDown(InputMappingForward[cameraScript.index]) && !keyInput)
         {
-
+            keyInput = true;
+            Invoke("makeInputFalse",0.8f);
             if (isFront)
             {
                 if (isTopFront)
@@ -113,7 +145,7 @@ public class cubeMovement : MonoBehaviour
                     var wallAxis = Vector3.Cross(Vector3.up, Vector3.forward);
                     xDir = 0;
                     zDir = 1;
-                    StartCoroutine(roll(wallAnchor, wallAxis));
+                    StartCoroutine(roll(wallAnchor, wallAxis,0));
                 }
                 else
                 {
@@ -123,7 +155,7 @@ public class cubeMovement : MonoBehaviour
                         var wallAxis = Vector3.Cross(Vector3.up, Vector3.forward);
                         xDir = 0;
                         zDir = 1;
-                        StartCoroutine(roll(wallAnchor, wallAxis));
+                        StartCoroutine(roll(wallAnchor, wallAxis,0));
                     }
                 }
             }
@@ -133,7 +165,7 @@ public class cubeMovement : MonoBehaviour
                 var axis = Vector3.Cross(Vector3.up, Vector3.forward);
                 xDir = 0;
                 zDir = 1;
-                StartCoroutine(roll(anchor, axis));
+                StartCoroutine(roll(anchor, axis,1));
             }
 
         }
@@ -141,8 +173,10 @@ public class cubeMovement : MonoBehaviour
 
     void Back()
     {
-        if (Input.GetKeyDown(KeyCode.S))
+        if (Input.GetKeyDown(InputMappingBackward[cameraScript.index]) && !keyInput)
         {
+            keyInput = true;
+            Invoke("makeInputFalse", 0.8f);
             if (isBack)
             {
                 if (isTopBack)
@@ -151,7 +185,7 @@ public class cubeMovement : MonoBehaviour
                     var wallAxis = Vector3.Cross(Vector3.up, -Vector3.forward);
                     xDir = 0;
                     zDir = -1;
-                    StartCoroutine(roll(wallAnchor, wallAxis));
+                    StartCoroutine(roll(wallAnchor, wallAxis,0));
                 }
                 else
                 {
@@ -161,7 +195,7 @@ public class cubeMovement : MonoBehaviour
                         var wallAxis = Vector3.Cross(Vector3.up, -Vector3.forward);
                         xDir = 0;
                         zDir = -1;
-                        StartCoroutine(roll(wallAnchor, wallAxis));
+                        StartCoroutine(roll(wallAnchor, wallAxis,0));
 
                     }
                 }
@@ -173,7 +207,7 @@ public class cubeMovement : MonoBehaviour
                 var axis = Vector3.Cross(Vector3.up, -Vector3.forward);
                 xDir = 0;
                 zDir = -1;
-                StartCoroutine(roll(anchor, axis));
+                StartCoroutine(roll(anchor, axis,1));
             }
 
         }
@@ -181,9 +215,10 @@ public class cubeMovement : MonoBehaviour
 
     void Right()
     {
-        if (Input.GetKeyDown(KeyCode.D))
+        if (Input.GetKeyDown(InputMappingRight[cameraScript.index]) && !keyInput)
         {
-
+            keyInput = true;
+            Invoke("makeInputFalse", 0.8f);
             if (isRight)
             {
                 if (isTopRight)
@@ -192,7 +227,7 @@ public class cubeMovement : MonoBehaviour
                     var wallAxis = Vector3.Cross(Vector3.up, Vector3.right);
                     xDir = 1;
                     zDir = 0;
-                    StartCoroutine(roll(wallAnchor, wallAxis));
+                    StartCoroutine(roll(wallAnchor, wallAxis,0));
                 }
                 else
                 {
@@ -202,7 +237,7 @@ public class cubeMovement : MonoBehaviour
                         var wallAxis = Vector3.Cross(Vector3.up, Vector3.right);
                         xDir = 1;
                         zDir = 0;
-                        StartCoroutine(roll(wallAnchor, wallAxis));
+                        StartCoroutine(roll(wallAnchor, wallAxis,0));
                     }
                 }
 
@@ -213,7 +248,7 @@ public class cubeMovement : MonoBehaviour
                 var axis = Vector3.Cross(Vector3.up, Vector3.right);
                 xDir = 1;
                 zDir = 0;
-                StartCoroutine(roll(anchor, axis));
+                StartCoroutine(roll(anchor, axis,1));
             }
 
 
@@ -223,8 +258,11 @@ public class cubeMovement : MonoBehaviour
 
     void Left()
     {
-        if (Input.GetKeyDown(KeyCode.A))
+
+        if (Input.GetKeyDown(InputMappingLeft[cameraScript.index]) && !keyInput)
         {
+            keyInput = true;
+            Invoke("makeInputFalse", 0.8f);
             if (isLeft)
             {
 
@@ -234,7 +272,7 @@ public class cubeMovement : MonoBehaviour
                     var wallAxis = Vector3.Cross(Vector3.up, Vector3.left);
                     xDir = -1;
                     zDir = 0;
-                    StartCoroutine(roll(wallAnchor, wallAxis));
+                    StartCoroutine(roll(wallAnchor, wallAxis,0));
                 }
                 else
                 {
@@ -245,7 +283,7 @@ public class cubeMovement : MonoBehaviour
                         var wallAxis = Vector3.Cross(Vector3.up, Vector3.left);
                         xDir = -1;
                         zDir = 0;
-                        StartCoroutine(roll(wallAnchor, wallAxis));
+                        StartCoroutine(roll(wallAnchor, wallAxis,0));
                     }
                 }
 
@@ -256,11 +294,11 @@ public class cubeMovement : MonoBehaviour
                 var axis = Vector3.Cross(Vector3.up, Vector3.left);
                 xDir = -1;
                 zDir = 0;
-                StartCoroutine(roll(anchor, axis));
+                StartCoroutine(roll(anchor, axis,1));
             }
         }
     }
-    IEnumerator roll(Vector3 anchor,Vector3 axis)
+    IEnumerator roll(Vector3 anchor,Vector3 axis, int climbCheck)
     {
         isMoving = true;
         for(int i=0;i<(90/rollSpeed);i++)
@@ -268,14 +306,21 @@ public class cubeMovement : MonoBehaviour
             transform.RotateAround(anchor,axis,rollSpeed);
             yield return new WaitForSeconds(0.01f);
         }
-       // playerSlideScript.slide(xDir,zDir);
-        diceRollScript.roll_dice(xDir,zDir);
+        if(climbCheck == 1  && isGrounded)
+        {
+            playerSlideScript.slide(xDir, zDir, diceRoll);
+        }
+        
+        
         isMoving = false;
         /*isBreak = true;*/
         
     }
 
-    
+    void makeInputFalse()
+    {
+        keyInput = false;
+    }
     
    
 }

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+
 public class Player_slide : MonoBehaviour
 {
     private GameObject dice;
@@ -32,6 +33,13 @@ public class Player_slide : MonoBehaviour
     private Vector3 pos_a;
     private Vector3 pos_b;
     private float num = 0f;
+
+    private int lastX = 0;
+    private int lastZ = 0;
+
+    public cubeMovement cubeScript;
+
+    public float speed = 5f;
     // Start is called before the first frame update
     void Start()
     {
@@ -43,22 +51,36 @@ public class Player_slide : MonoBehaviour
     void Update()
     {
         
+
     }
 
-    public void slide(int x, int z)
+    public void slide(int x, int z, int roll)
     {
         pos_a = dice_pos;
-        pos_b = new Vector3(dice_pos.x + (cube_constant * x*0), dice_pos.y, dice_pos.z + (cube_constant * z*0));
+        pos_b = new Vector3(dice_pos.x + (cube_constant * x*roll), dice_pos.y, dice_pos.z + (cube_constant * z*roll));
         pause = true;
         begin_descent = true;
+        lastX = x;
+        lastZ = z;
     }
+
+
 
 
     private void FixedUpdate()
     {
         dice_pos = dice.transform.position;
+
         if (begin_descent == true)
         {
+            if ((lastX == 1 && cubeScript.isRight) || (lastX == -1 && cubeScript.isLeft) || (lastZ == 1 && cubeScript.isFront) || (lastZ == -1 && cubeScript.isBack))
+            {
+                begin_descent = false;
+                addition_number = initial_add;
+
+                pause = false;
+            }
+
             dice.transform.position = Vector3.Lerp(pos_a, pos_b, Mathf.Min(num / ratio_denom, 1));
 
             if (num / ratio_denom >= 1 || addition_number <= 0)
@@ -67,13 +89,13 @@ public class Player_slide : MonoBehaviour
                 pause = false;
             }
             num = num + addition_number;
-            addition_number = (addition_number) / redux_factor;
+            //addition_number = (addition_number) / redux_factor;
         }
         else
         {
             addition_number = initial_add;
             num = 0;
-            
+
         }
     }
 }
